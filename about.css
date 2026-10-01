@@ -1,0 +1,168 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --section: #131c2e;
+  --text: #e8eefc;
+  --muted: #a3b1cb;
+  --accent: #38bdf8;
+  --line: #2a3957;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+main {
+  width: min(100%, 860px);
+  margin: auto;
+  padding: 18px 16px 48px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.back {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.back:hover,
+.back:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+section {
+  margin: 14px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--section);
+}
+
+.intro {
+  padding: 26px 22px;
+  border-left: 3px solid var(--accent);
+}
+
+.eyebrow {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.intro h2 {
+  max-width: 680px;
+  font-size: 28px;
+}
+
+.lead {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  counter-increment: step;
+}
+
+.steps strong::before {
+  content: "0" counter(step) " / ";
+  color: var(--accent);
+}
+
+.steps span {
+  color: var(--muted);
+}
+
+.faq details {
+  border-top: 1px solid var(--line);
+}
+
+.faq summary {
+  padding: 14px 2px;
+  color: var(--text);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.faq summary::marker {
+  color: var(--accent);
+}
+
+.faq details p {
+  padding: 0 18px 12px 2px;
+}
+
+@media (max-width: 600px) {
+  main {
+    padding-inline: 12px;
+  }
+
+  section {
+    padding: 16px;
+  }
+
+  .intro {
+    padding: 20px 16px;
+  }
+
+  .intro h2 {
+    font-size: 24px;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}

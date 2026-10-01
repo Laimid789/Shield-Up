@@ -42,11 +42,26 @@ h2 {
 }
 
 .top {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  min-height: 34px;
+}
+
+.header-links {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.top > .badge {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
 }
 
 .contributors-link {
@@ -225,4 +240,22 @@ h2 {
 ul {
   margin: 6px 0;
   padding-left: 18px;
+}
+
+@media (max-width: 600px) {
+  .top {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .top > .badge {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    transform: none;
+  }
+
+  .header-links {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
