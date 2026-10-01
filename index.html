@@ -116,6 +116,7 @@ function s3(){
  r.o.forEach(function(o,i){h+='<button class="btn" id="o'+i+'" onclick="pick('+i+')">'+o[0]+'</button>'});
  $("main").innerHTML=h+'<div id="fb"></div></div>';startT()
 }
+
 function pick(i){
  clearInterval(T);var r=ROUNDS[S.round],o=r.o[i],ok=o[1];
  r.o.forEach(function(_,j){$("o"+j).disabled=true});
