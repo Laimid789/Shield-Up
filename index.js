@@ -1,0 +1,104 @@
+// ---- STATE: everything the dashboard remembers lives here ----
+var S={step:0,score:50,found:{},round:0,done:false,log:[],mist:[],hist:[50]};
+var STEPS=["1 Identify","2 Assess","3 Respond","4 Prevent"];
+
+// ---- DATA: edit these to change the scenario ----
+var FLAGS={
+ sender:["admin@school-support-verify.xyz","Fake sender: the real school uses its official domain, not a random .xyz address."],
+ urgent:["URGENT: account suspended in 24 hours","Urgency is a pressure trick. Attackers want you to panic and not think."],
+ greet:["Dear Student,","Generic greeting. A real admin would use your name."],
+ link:["http://school-portal-verify.xyz/login","The link goes to a lookalike site, not the real school portal. It will steal your password."],
+ threat:["Your account will be deleted","Threats of punishment or loss are a classic phishing tactic."]
+};
+var ROUNDS=[
+ {q:"You just realised you typed your password on that site. What do you do FIRST?",o:[
+  ["Ignore it and hope nothing happens",0,"Bad. The attacker already has your password. Every minute counts."],
+  ["Change the password from a trusted device and make it strong and unique",1,"Correct! This locks the attacker out. Use a NEW password, never reuse old ones."],
+  ["Reply to the sender and ask if it's real",0,"Bad. Talking to the attacker confirms your account is active and gives them more chances."],
+  ["Just delete the message",0,"Not enough. Deleting hides the problem but the stolen password still works. Also you lose evidence."]] },
+ {q:"Alert! A login from another country at 2:14 AM was detected. What now?",o:[
+  ["Turn on MFA and log out all other sessions",1,"Correct! MFA means a stolen password alone is not enough, and logging out sessions kicks the attacker out."],
+  ["Wait and see if it happens again",0,"Bad. Waiting lets the attacker read data and attack your friends from your account."],
+  ["Message friends to click the link to 'check it'",0,"Very bad! That spreads the attack to others."],
+  ["Take a screenshot, then report to the IT admin",1,"Correct! Reporting warns the school and the screenshot preserves evidence."]] },
+ {q:"Your laptop is acting weird after the click. It might have malware. What do you do?",o:[
+  ["Disconnect from Wi-Fi, then run an antivirus scan",1,"Correct! Disconnecting stops malware from spreading or sending data out."],
+  ["Wipe and reinstall everything right now",0,"Too early. This destroys evidence the IT team needs. Report first."],
+  ["Keep using it normally",0,"Bad. Malware could keep stealing data while you work."],
+  ["Plug in a USB drive and copy your files to save them",0,"Bad. You could spread infected files to the USB and other devices."]] }
+];
+var AT=[["Student account",95,"#ef4444"],["Personal data",75,"#f59e0b"],["School data (grades, records)",60,"#f59e0b"],["Other students (if link is forwarded)",45,"#38bdf8"]];
+var PREV=[
+ ["Check the sender's real address before clicking anything","Phishing relies on fake senders."],
+ ["Hover over links to see where they REALLY go","Fake login pages copy the real design."],
+ ["Turn on MFA on every school and email account","Stops stolen-password logins."],
+ ["Use a password manager and a unique password per site","One leaked password won't open everything."],
+ ["Never share passwords. Schools never ask by message","Real admins don't need your password."],
+ ["Report suspicious messages to the IT team","Reporting protects the whole school."],
+ ["Keep your OS and antivirus updated","Closes holes that malware uses."]];
+
+// ---- HELPERS ----
+function $(i){return document.getElementById(i)}
+function addLog(t){S.log.push(t);renderLog()}
+function renderLog(){$("log").innerHTML=S.log.map(function(l){return '<div class="log">'+l+'</div>'}).join("")}
+function setLevel(t,c){var e=$("lvl");e.textContent="Threat: "+t;e.style.background=c;e.style.color="#04121f"}
+function bump(n){S.score=Math.max(0,Math.min(100,S.score+n));$("sc").textContent=S.score;S.hist.push(S.score);graph()}
+function graph(){var h=S.hist,w=300/Math.max(h.length-1,1),p=h.map(function(v,i){return (i*w)+","+(100-v)}).join(" ");$("gr").innerHTML='<svg viewBox="0 0 300 100" width="100%" height="110"><polyline points="'+p+'" fill="none" stroke="#38bdf8" stroke-width="3"/></svg>'}
+var T=null;
+function startT(){var t=15;clearInterval(T);T=setInterval(function(){t--;var e=$("tm");if(e)e.textContent="⏱ "+t+"s";if(t<=0){clearInterval(T);timeout()}},1000)}
+function timeout(){if(!$("o0"))return;var r=ROUNDS[S.round];r.o.forEach(function(_,j){$("o"+j).disabled=true});bump(-8);S.mist.push(r.q);addLog("⏰ Too slow! No decision made in time");$("fb").innerHTML='<div class="fb badc">⏰ Time is up! In a real attack, hesitating gives the attacker more time.</div><button class="next" onclick="nextR()">Next ➜</button>'}
+function go(n){clearInterval(T);S.step=n;render()}
+function tabs(){$("tabs").innerHTML=STEPS.map(function(s,i){return '<button class="tab'+(i==S.step?' on':'')+'" onclick="go('+i+')">'+s+'</button>'}).join("")}
+
+// ---- SCREENS ----
+function render(){tabs();[s1,s2,s3,s4][S.step]()}
+
+function s1(){
+ var n=Object.keys(S.found).length,h='<div class="card"><h2>🔍 Step 1: Identify the Threat</h2><p>You got this message. Tap the <b>suspicious parts</b> (underlined) to learn why they are dangerous. Found: <b>'+n+'/5</b></p>';
+ function f(k){return '<span class="flag'+(S.found[k]?' f':'')+'" onclick="flag(\''+k+'\')">'+FLAGS[k][0]+'</span>'}
+ h+='<div class="mail"><small>From: '+f("sender")+'</small><br><b>'+f("urgent")+'</b><p>'+f("greet")+'<br>We detected a problem with your school account. '+f("threat")+' unless you verify now.</p><p><span class="link" onclick="flag(\'link\')">'+f("link")+'</span></p></div><div id="ex"></div>';
+ if(n==5)h+='<button class="next" onclick="clicked()">All found! You clicked the link and entered your password... ➜</button>';
+ $("main").innerHTML=h+'</div>'
+}
+function flag(k){
+ if(!S.found[k]){S.found[k]=1;bump(4);addLog("Spotted red flag: "+FLAGS[k][0])}
+ s1();$("ex").innerHTML='<div class="fb good"><b>Why it is dangerous:</b> '+FLAGS[k][1]+'</div>'
+}
+function clicked(){S.step=1;addLog("⚠️ Student clicked the link and entered username and password");addLog("🚨 Unusual login detected: new country, 2:14 AM");setLevel("CRITICAL","#ef4444");$("st").textContent="Under attack";bump(-25);render()}
+
+function s2(){
+ var h='<div class="card"><h2>📊 Step 2: Assess the Risk</h2><p>Classification: <span class="badge" style="background:#ef4444;color:#04121f">CRITICAL</span></p><p>Why Critical? The password was <b>actually entered</b> on a fake site and a <b>real attacker login</b> already happened. This is no longer just a suspicious message, it is a confirmed breach.</p>';
+ AT.forEach(function(a){h+='<div class="row"><span>'+a[0]+'</span><span>'+a[1]+'% at risk</span></div><div class="bar"><i style="width:'+a[1]+'%;background:'+a[2]+'"></i></div>'});
+ h+='<p style="color:var(--mu);font-size:13px">Scale: Low = suspicious only. Medium = clicked but nothing entered. High = password entered. Critical = password entered AND attacker activity seen.</p><button class="next" onclick="go(2)">Respond now ➜</button></div>';
+ $("main").innerHTML=h
+}
+
+function s3(){
+ if(S.round>=ROUNDS.length){return end()}
+ var r=ROUNDS[S.round],h='<div class="card"><h2>⚡ Step 3: Respond ('+(S.round+1)+'/'+ROUNDS.length+')</h2><span class="badge" id="tm" style="background:#0f1728">⏱ 15s</span><p><b>'+r.q+'</b></p>';
+ r.o.forEach(function(o,i){h+='<button class="btn" id="o'+i+'" onclick="pick('+i+')">'+o[0]+'</button>'});
+ $("main").innerHTML=h+'<div id="fb"></div></div>';startT()
+}
+
+function pick(i){
+ clearInterval(T);var r=ROUNDS[S.round],o=r.o[i],ok=o[1];
+ r.o.forEach(function(_,j){$("o"+j).disabled=true});
+ bump(ok?12:-10);if(!ok)S.mist.push(r.q);
+ addLog((ok?"✅ ":"❌ ")+o[0]);
+ $("fb").innerHTML='<div class="fb '+(ok?'good':'badc')+'">'+(ok?'✅ ':'❌ ')+o[2]+'</div><button class="next" onclick="nextR()">Next ➜</button>'
+}
+function nextR(){S.round++;s3()}
+
+function end(){
+ S.done=true;setLevel("CONTAINED","#22c55e");$("st").textContent="Contained";
+ $("main").innerHTML='<div class="card"><h2>🏁 Incident Handled</h2><p>Final score: <b>'+S.score+'/100</b>. '+(S.mist.length?'You made '+S.mist.length+' wrong choice(s). Real attackers punish those, so learn from the feedback in the timeline.':'Perfect. You acted like a pro!')+'</p><button class="next" onclick="go(3)">See how to prevent this ➜</button></div>'
+}
+
+function s4(){
+ var h='<div class="card"><h2>🧱 Step 4: Prevent Future Attacks</h2><p>Based on this <b>phishing + stolen password</b> attack:</p>';
+ PREV.forEach(function(p,i){h+='<label class="btn" style="display:block"><input type="checkbox" onchange="chk(this)"> <b>'+p[0]+'</b><br><small style="color:var(--mu)">'+p[1]+'</small></label>'});
+ $("main").innerHTML=h+'<p style="color:var(--mu);font-size:13px">Tick each habit you will follow. Each one boosts your score.</p></div>'
+}
+function chk(e){bump(e.checked?3:-3)}
+
+render();renderLog();graph();setLevel("Unknown","#8fa0c0");
