@@ -1,6 +1,7 @@
 // ---- STATE: everything the dashboard remembers lives here ----
-var S={step:0,score:50,found:{},round:0,done:false,log:[],mist:[],hist:[50]};
+var S={step:0,unlocked:0,score:50,found:{},round:0,done:false,log:[],mist:[],hist:[50],retryLogIndex:null,prevent:[]};
 var STEPS=["1 Identify","2 Assess","3 Respond","4 Prevent"];
+var RESPONSE_SECONDS=30;
 
 // ---- DATA: edit these to change the scenario ----
 var FLAGS={
@@ -45,10 +46,11 @@ function setLevel(t,c){var e=$("lvl");e.textContent="Threat: "+t;e.style.backgro
 function bump(n){S.score=Math.max(0,Math.min(100,S.score+n));$("sc").textContent=S.score;S.hist.push(S.score);graph()}
 function graph(){var h=S.hist,w=300/Math.max(h.length-1,1),p=h.map(function(v,i){return (i*w)+","+(100-v)}).join(" ");$("gr").innerHTML='<svg viewBox="0 0 300 100" width="100%" height="110"><polyline points="'+p+'" fill="none" stroke="#38bdf8" stroke-width="3"/></svg>'}
 var T=null;
-function startT(){var t=15;clearInterval(T);T=setInterval(function(){t--;var e=$("tm");if(e)e.textContent="⏱ "+t+"s";if(t<=0){clearInterval(T);timeout()}},1000)}
+function startT(){var t=RESPONSE_SECONDS;clearInterval(T);T=setInterval(function(){t--;var e=$("tm");if(e)e.textContent="⏱ "+t+"s";if(t<=0){clearInterval(T);timeout()}},1000)}
+function restart(){clearInterval(T);S={step:0,unlocked:0,score:50,found:{},round:0,done:false,log:[],mist:[],hist:[50],retryLogIndex:null,prevent:[]};$("sc").textContent=S.score;$("st").textContent="Investigating";render();renderLog();graph();setLevel("Unknown","#8fa0c0")}
 function timeout(){if(!$("o0"))return;var r=ROUNDS[S.round];r.o.forEach(function(_,j){$("o"+j).disabled=true});bump(-8);S.mist.push(r.q);addLog("⏰ Too slow! No decision made in time");$("fb").innerHTML='<div class="fb badc">⏰ Time is up! In a real attack, hesitating gives the attacker more time.</div><button class="next" onclick="nextR()">Next ➜</button>'}
-function go(n){clearInterval(T);S.step=n;render()}
-function tabs(){$("tabs").innerHTML=STEPS.map(function(s,i){return '<button class="tab'+(i==S.step?' on':'')+'" onclick="go('+i+')">'+s+'</button>'}).join("")}
+function go(n){if(n<0||n>S.unlocked)return;clearInterval(T);S.step=n;render()}
+function tabs(){$("tabs").innerHTML=STEPS.map(function(s,i){var locked=i>S.unlocked;return '<button class="tab'+(i==S.step?' on':'')+'" onclick="go('+i+')"'+(locked?' disabled title="Complete the previous phase to unlock" aria-label="'+s+', locked. Complete the previous phase to unlock"':'')+'>'+s+(locked?' 🔒':'')+'</button>'}).join("")}
 
 // ---- SCREENS ----
 function render(){tabs();[s1,s2,s3,s4][S.step]()}
@@ -57,25 +59,26 @@ function s1(){
  var n=Object.keys(S.found).length,h='<div class="card"><h2>🔍 Step 1: Identify the Threat</h2><p>You got this message. Tap the <b>suspicious parts</b> (underlined) to learn why they are dangerous. Found: <b>'+n+'/5</b></p>';
  function f(k){return '<span class="flag'+(S.found[k]?' f':'')+'" onclick="flag(\''+k+'\')">'+FLAGS[k][0]+'</span>'}
  h+='<div class="mail"><small>From: '+f("sender")+'</small><br><b>'+f("urgent")+'</b><p>'+f("greet")+'<br>We detected a problem with your school account. '+f("threat")+' unless you verify now.</p><p><span class="link" onclick="flag(\'link\')">'+f("link")+'</span></p></div><div id="ex"></div>';
- if(n==5)h+='<button class="next" onclick="clicked()">All found! You clicked the link and entered your password... ➜</button>';
+ if(n==5)h+='<p>All found! Imagine you clicked the link and entered your password. Let\'s see what the risks are and how to tackle this.</p><button class="next" onclick="clicked()">Next</button>';
  $("main").innerHTML=h+'</div>'
 }
 function flag(k){
  if(!S.found[k]){S.found[k]=1;bump(4);addLog("Spotted red flag: "+FLAGS[k][0])}
  s1();$("ex").innerHTML='<div class="fb good"><b>Why it is dangerous:</b> '+FLAGS[k][1]+'</div>'
 }
-function clicked(){S.step=1;addLog("⚠️ Student clicked the link and entered username and password");addLog("🚨 Unusual login detected: new country, 2:14 AM");setLevel("CRITICAL","#ef4444");$("st").textContent="Under attack";bump(-25);render()}
+function clicked(){if(S.unlocked>0){go(1);return}S.unlocked=1;S.step=1;addLog("⚠️ Student clicked the link and entered username and password");addLog("🚨 Unusual login detected: new country, 2:14 AM");setLevel("CRITICAL","#ef4444");$("st").textContent="Under attack";bump(-25);render()}
 
 function s2(){
  var h='<div class="card"><h2>📊 Step 2: Assess the Risk</h2><p>Classification: <span class="badge" style="background:#ef4444;color:#04121f">CRITICAL</span></p><p>Why Critical? The password was <b>actually entered</b> on a fake site and a <b>real attacker login</b> already happened. This is no longer just a suspicious message, it is a confirmed breach.</p>';
  AT.forEach(function(a){h+='<div class="row"><span>'+a[0]+'</span><span>'+a[1]+'% at risk</span></div><div class="bar"><i style="width:'+a[1]+'%;background:'+a[2]+'"></i></div>'});
- h+='<p style="color:var(--mu);font-size:13px">Scale: Low = suspicious only. Medium = clicked but nothing entered. High = password entered. Critical = password entered AND attacker activity seen.</p><button class="next" onclick="go(2)">Respond now ➜</button></div>';
+ h+='<p style="color:var(--mu);font-size:13px">Scale: Low = suspicious only. Medium = clicked but nothing entered. High = password entered. Critical = password entered AND attacker activity seen.</p><button class="next" onclick="completeAssessment()">Respond now ➜</button></div>';
  $("main").innerHTML=h
 }
+function completeAssessment(){S.unlocked=Math.max(S.unlocked,2);go(2)}
 
 function s3(){
  if(S.round>=ROUNDS.length){return end()}
- var r=ROUNDS[S.round],h='<div class="card"><h2>⚡ Step 3: Respond ('+(S.round+1)+'/'+ROUNDS.length+')</h2><span class="badge" id="tm" style="background:#0f1728">⏱ 15s</span><p><b>'+r.q+'</b></p>';
+ var r=ROUNDS[S.round],h='<div class="card"><h2>⚡ Step 3: Respond ('+(S.round+1)+'/'+ROUNDS.length+')</h2><span class="badge" id="tm" style="background:#0f1728">⏱ '+RESPONSE_SECONDS+'s</span><p><b>'+r.q+'</b></p>';
  r.o.forEach(function(o,i){h+='<button class="btn" id="o'+i+'" onclick="pick('+i+')">'+o[0]+'</button>'});
  $("main").innerHTML=h+'<div id="fb"></div></div>';startT()
 }
@@ -84,21 +87,26 @@ function pick(i){
  clearInterval(T);var r=ROUNDS[S.round],o=r.o[i],ok=o[1];
  r.o.forEach(function(_,j){$("o"+j).disabled=true});
  bump(ok?12:-10);if(!ok)S.mist.push(r.q);
- addLog((ok?"✅ ":"❌ ")+o[0]);
- $("fb").innerHTML='<div class="fb '+(ok?'good':'badc')+'">'+(ok?'✅ ':'❌ ')+o[2]+'</div><button class="next" onclick="nextR()">Next ➜</button>'
+ var entry=(ok?"✅ ":"❌ ")+o[0];
+ if(S.retryLogIndex!==null){S.log[S.retryLogIndex]=entry;renderLog()}else{S.retryLogIndex=S.log.length;addLog(entry)}
+ if(ok)S.retryLogIndex=null;
+ $("fb").innerHTML='<div class="fb '+(ok?'good':'badc')+'">'+(ok?'✅ ':'❌ ')+o[2]+'</div><button class="next" onclick="'+(ok?'nextR()':'retryR()')+'">'+(ok?'Next ➜':'Retry ↻')+'</button>'
 }
-function nextR(){S.round++;s3()}
+function retryR(){s3()}
+function nextR(){S.retryLogIndex=null;S.round++;if(S.round>=ROUNDS.length){S.unlocked=Math.max(S.unlocked,3);end();return}s3()}
 
 function end(){
- S.done=true;setLevel("CONTAINED","#22c55e");$("st").textContent="Contained";
+ S.done=true;tabs();setLevel("CONTAINED","#22c55e");$("st").textContent="Contained";
  $("main").innerHTML='<div class="card"><h2>🏁 Incident Handled</h2><p>Final score: <b>'+S.score+'/100</b>. '+(S.mist.length?'You made '+S.mist.length+' wrong choice(s). Real attackers punish those, so learn from the feedback in the timeline.':'Perfect. You acted like a pro!')+'</p><button class="next" onclick="go(3)">See how to prevent this ➜</button></div>'
 }
 
 function s4(){
  var h='<div class="card"><h2>🧱 Step 4: Prevent Future Attacks</h2><p>Based on this <b>phishing + stolen password</b> attack:</p>';
- PREV.forEach(function(p,i){h+='<label class="btn" style="display:block"><input type="checkbox" onchange="chk(this)"> <b>'+p[0]+'</b><br><small style="color:var(--mu)">'+p[1]+'</small></label>'});
- $("main").innerHTML=h+'<p style="color:var(--mu);font-size:13px">Tick each habit you will follow. Each one boosts your score.</p></div>'
+ PREV.forEach(function(p,i){h+='<label class="btn" style="display:block"><input type="checkbox"'+(S.prevent[i]?' checked':'')+' onchange="chk(this,'+i+')"> <b>'+p[0]+'</b><br><small style="color:var(--mu)">'+p[1]+'</small></label>'});
+ $("main").innerHTML=h+'<p style="color:var(--mu);font-size:13px">Tick each habit you will follow. Each one boosts your score.</p></div><div class="card phase-actions"><button class="next" id="finish-demo" type="button" onclick="finishDemo()" disabled>Finish Demo</button><button class="next" id="restart-demo" type="button" onclick="restart()" disabled>Restart demo ↻</button></div>';updateFinishButton()
 }
-function chk(e){bump(e.checked?3:-3)}
+function updateFinishButton(){var locked=!PREV.every(function(_,i){return S.prevent[i]});["finish-demo","restart-demo"].forEach(function(id){var button=$(id);if(button)button.disabled=locked})}
+function finishDemo(){if(PREV.every(function(_,i){return S.prevent[i]}))window.location.href="completion.html"}
+function chk(e,i){S.prevent[i]=e.checked;bump(e.checked?3:-3);updateFinishButton()}
 
 render();renderLog();graph();setLevel("Unknown","#8fa0c0");

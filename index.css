@@ -217,6 +217,17 @@ h2 {
   cursor: pointer;
 }
 
+.next:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.phase-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .g {
   display: grid;
   grid-template-columns: 1fr 1fr;

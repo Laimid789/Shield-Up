@@ -1,0 +1,49 @@
+.takeaways {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.takeaways li {
+  padding-left: 4px;
+  color: var(--muted);
+}
+
+.takeaways strong {
+  color: var(--text);
+}
+
+.completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.restart-link {
+  padding: 8px 13px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #04121f;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.restart-link:hover,
+.restart-link:focus-visible {
+  background: #7dd3fc;
+}
+
+.completion-actions .back {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 420px) {
+  .completion-actions > a {
+    text-align: center;
+  }
+}
