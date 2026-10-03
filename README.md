@@ -2,7 +2,7 @@
 
 Shield-Up is an interactive cybersecurity learning website focused on phishing awareness and incident response. It guides learners through a fictional school-account incident: identify suspicious message details, assess the risk, choose response actions, and review prevention habits.
 
-## Pages and files
+## Main Pages and files
 
 - `index.html`: Main training dashboard and site navigation
 - `index.css`: Dashboard layout and styles
